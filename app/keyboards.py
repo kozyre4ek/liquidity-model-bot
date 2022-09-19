@@ -2,13 +2,6 @@ from typing import List
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 
 
-def start() -> ReplyKeyboardMarkup:
-    keyboard = ReplyKeyboardMarkup(one_time_keyboard=True)
-    keyboard.row(
-        KeyboardButton("Начать!")
-    )
-    return keyboard
-
 def city() -> ReplyKeyboardMarkup:
     keyboard = ReplyKeyboardMarkup()
     keyboard.row(
@@ -53,7 +46,7 @@ def repairtype() -> ReplyKeyboardMarkup:
         KeyboardButton("Косметический"),
     )
     keyboard.row(
-        KeyboardButton("Евро"),
+        KeyboardButton("Евроремонт"),
         KeyboardButton("Дизайнерский"),
     )
     return keyboard

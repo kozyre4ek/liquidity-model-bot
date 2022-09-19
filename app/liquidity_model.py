@@ -97,7 +97,7 @@ def report(features: Dict[str, Any], cost_price: float=0.00053) -> List[Tuple[An
         costs.append(cost(pred, features['price_sqm'] * features['totalarea'], cost_price, price_ch / 100, 180))
     costs_profit = [cost_good / cost - 1 for cost in costs]
     fig, ax = plt.subplots(figsize=(10, 7))
-    ax.plot(price_chs, costs_profit)
+    ax.plot(price_chs, [cost_profit * 100 for cost_profit in costs_profit])
     ax.set_xlabel('Дисконт')
     ax.set_title('Средняя выгода для клиента в пересчете на весь срок продажи, %')
     plt.grid()

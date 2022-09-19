@@ -25,36 +25,93 @@ class FeatureStates(StatesGroup):
     floor = State()
     repairtype = State()
 
+userids = [settings.telegram_admin_id]
+
 @bot.message_handler(commands=["start"])
 def start(message: Message):
-    bot.set_state(message.from_user.id, FeatureStates.city, message.chat.id)
-    
+    text = f"Привет, {message.from_user.first_name}, я помощник по оценке ликвидности недвижимости в Москве и Санкт-Петербурге!"
+    if message.from_user.id not in userids:
+        text += "\nИспользуй команду /add, чтобы отправить запрос на добавление в whitelist."
+    else:
+        text += "\nИспользуй команду /help, чтобы узнать, как пользоваться помощником!"
+        bot.set_state(message.from_user.id, FeatureStates.city, message.chat.id)
     bot.send_message(
         chat_id=message.chat.id, 
-        text=f"Привет, {message.from_user.first_name}, я помощник по оценке ликвидности недвижимости в Москве и Санкт-Петербурге!",
-        reply_markup=keyboard.start(),
+        text=text,
+        reply_markup=keyboard.hide(),
     )
 
-@bot.message_handler(state="*", commands=['cancel', 'predict'])
-def cancel(message):
+@bot.message_handler(commands=["add"])
+def add_me(message: Message):
+    userid = message.from_user.id
+    if userid in userids:
+        bot.reply_to(
+            message=message, 
+            text="Упс! Я тебя уже добавил в список, используй команду /predict или команду /help для помощи по работе с ботом.",
+            reply_markup=keyboard.hide(),
+        )
+    else:
+        bot.send_message(
+            chat_id=settings.telegram_admin_id,
+            text=f"Тук-тук! {message.from_user.full_name} хочет получить доступ к боту! Его userid {message.from_user.id}, используй команду /add_user <userid>," \
+                " чтобы добавить его.",
+            reply_markup=keyboard.hide()
+        )
+
+@bot.message_handler(func=lambda msg: msg.from_user.id == settings.telegram_admin_id, commands=['add_user'])
+def add_user(message: Message):
+    try:
+        userid = int(message.text.lstrip('/add_user '))
+        if userid in userids:
+            bot.reply_to(
+                message=message, 
+                text="Упс! Я его уже добавил в список!",
+            )
+        else:
+            userids.append(userid)
+            bot.set_state(userid, FeatureStates.city, userid)
+            bot.reply_to(
+                message=message, 
+                text="Done!",
+            )
+            bot.send_message(
+                chat_id=userid,
+                text='Доступ получен! Теперь если хочешь оценить ликвидность объекта - используй команду /predict или команду /help для помощи по работе с ботом'
+            )
+    except:
+        bot.reply_to(message, 'Проверь правильность введенных данных или повтори запрос!')
+
+@bot.message_handler(func=lambda msg: msg.from_user.id in userids, state="*", commands=['cancel'])
+def cancel(message: Message):
     bot.delete_state(message.from_user.id, message.chat.id)
     bot.set_state(message.from_user.id, FeatureStates.city, message.chat.id)
     bot.send_message(
         chat_id=message.chat.id,
-        text="Нажмите Начать! для оценки нового объекта",
-        reply_markup=keyboard.start()
+        text="Чтобы оценить ликвидность объекта - используй команду /predict или команду /help для помощи по работе с ботом",
+        reply_markup=keyboard.hide()
+    )
+
+@bot.message_handler(func=lambda msg: msg.from_user.id == settings.telegram_admin_id, commands=['show_users'])
+def show_users(message: Message):
+    bot.send_message(
+        chat_id=message.chat.id,
+        text=str(userids)
     )
 
 @bot.message_handler(state="*", commands=["help"])
 def help(message: Message):
-    bot.set_state(message.from_user.id, FeatureStates.city, message.chat.id)
+    text = "Я помощник по оценке ликвидности недвижимости в Москве и Санкт-Петербурге!"
+    text += "\n/help - описание команд"
+    text += "\n/add - добавить в whitelist"
+    text += "\n/predict - оценить ликвидность объекта"
+    text += "\n/cancel - отменить оценку"
     bot.send_message(
         chat_id=message.chat.id, 
-        text="Я помощник по оценке ликвидности недвижимости в Москве и Санкт-Петербурге!",
-        reply_markup=keyboard.start(),
+        text=text,
+        reply_markup=keyboard.hide(),
     )
 
-@bot.message_handler(state=FeatureStates.city, text=['Начать!'])
+@bot.message_handler(func=lambda msg: msg.from_user.id in userids, state=FeatureStates.city, commands=['predict'])
 def choose_city(message: Message):
     bot.send_message(
         chat_id=message.chat.id,
@@ -213,6 +270,7 @@ def get_floor(message: Message):
 @bot.message_handler(state=FeatureStates.repairtype)
 def get_val_and_predict(message: Message):
     if message.text in keyboard.get_labels(keyboard.repairtype()):
+        bot.send_message(message.chat.id, text="Ожидайте результаты!", reply_markup=keyboard.hide())
         with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
             data['repairtype'] = message.text
             data['price_sqm_model_diff_rate'] = get_price_sqm_model_diff_rate(data)
@@ -239,7 +297,7 @@ def get_val_and_predict(message: Message):
             chat_id=message.chat.id,
             photo=rep['plot'],
             caption=caption,
-            reply_markup=keyboard.start()
+            reply_markup=keyboard.hide()
         )
         bot.delete_state(message.from_user.id, message.chat.id)
         bot.set_state(message.from_user.id, FeatureStates.city, message.chat.id)
