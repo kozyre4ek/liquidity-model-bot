@@ -26,9 +26,9 @@ def val_model_params():
         'floor': 'Другой',
         'repairtype': 'Косметический',
         'roomscount': '1',
-        'date': '2022-08-31',
+        'date': '2022-08-29',
         'price_sqm': 300000,
-        'price_sqm_model_diff_rate': 0.134
+        'price_sqm_model_diff_rate': 0.191
     }
 
 def test_get_price_sqm_model_diff_rate(val_model_params):

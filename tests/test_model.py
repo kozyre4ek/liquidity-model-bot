@@ -27,3 +27,13 @@ def test_scale(object, scaled_object):
 
 def test_predict(object):
     np.testing.assert_allclose(liquidity_model.predict(object), np.array([0.0248246]), rtol=1e-05)
+
+def test_cost():
+    assert int(liquidity_model.cost(0.056, 341_429, 53e-5, 0.2)) == 5_200
+    assert int(liquidity_model.cost(0.056, 341_429, 53e-5)) == 1_795
+
+def test_which_interval():
+    assert liquidity_model._which_interval(0.01) == 0
+    assert liquidity_model._which_interval(0.0419) == 1
+    assert liquidity_model._which_interval(0.05) == 2
+    assert liquidity_model._which_interval(0.99) == 3
